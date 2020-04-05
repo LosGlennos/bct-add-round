@@ -109,7 +109,7 @@ func (handler *Handler) saveRound(round Body) error {
 }
 
 func (handler *Handler) authenticate(headers Headers) error{
-	token := headers.Authorization[6:]
+	token := headers.Authorization[7:]
 	_, err := handler.ParseAndVerifyJWT(token)
 	if err != nil {
 		return err
