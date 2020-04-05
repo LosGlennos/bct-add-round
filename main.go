@@ -57,10 +57,12 @@ func HandleRequest(ctx context.Context, event Event) (string, error) {
 func newHandler() Handler {
 	dynamoClient := getDynamoClient()
 	cognitoClient := getCognitoClient()
+	wellKnownJWKs := getWellKnownJWTKs()
 
 	return Handler{
 		dynamoClient:     dynamoClient,
 		identityProvider: cognitoClient,
+		WellKnownJWKs:    wellKnownJWKs,
 	}
 }
 
@@ -108,7 +110,7 @@ func (handler *Handler) saveRound(round Body) error {
 	return err
 }
 
-func (handler *Handler) authenticate(headers Headers) error{
+func (handler *Handler) authenticate(headers Headers) error {
 	token := headers.Authorization[7:]
 	_, err := handler.ParseAndVerifyJWT(token)
 	if err != nil {
@@ -119,6 +121,7 @@ func (handler *Handler) authenticate(headers Headers) error{
 
 func (handler *Handler) ParseAndVerifyJWT(t string) (*jwt.Token, error) {
 	token, err := jwt.Parse(t, func(token *jwt.Token) (interface{}, error) {
+		log.Print(handler.WellKnownJWKs)
 		log.Print(token)
 		keys := handler.WellKnownJWKs.LookupKeyID(token.Header["kid"].(string))
 		if len(keys) == 0 {
@@ -156,7 +159,7 @@ func (handler *Handler) ParseAndVerifyJWT(t string) (*jwt.Token, error) {
 	return nil, err
 }
 
-func (handler *Handler) getWellKnownJWTKs() error {
+func getWellKnownJWTKs() *jwk.Set {
 	var buffer bytes.Buffer
 	buffer.WriteString("https://cognito-idp.eu-west-1.amazonaws.com/")
 	buffer.WriteString(os.Getenv("COGNITO_USER_POOL_ID"))
@@ -166,12 +169,10 @@ func (handler *Handler) getWellKnownJWTKs() error {
 
 	set, err := jwk.Fetch(wkjwksURL)
 	if err == nil {
-		handler.WellKnownJWKs = set
-	} else {
-		log.Println("There was a problem getting the well known JSON web token key set")
-		log.Println(err)
+		return set
 	}
-	return err
+
+	panic(err)
 }
 
 func main() {
