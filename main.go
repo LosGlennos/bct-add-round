@@ -119,6 +119,7 @@ func (handler *Handler) authenticate(headers Headers) error{
 
 func (handler *Handler) ParseAndVerifyJWT(t string) (*jwt.Token, error) {
 	token, err := jwt.Parse(t, func(token *jwt.Token) (interface{}, error) {
+		log.Print(token)
 		keys := handler.WellKnownJWKs.LookupKeyID(token.Header["kid"].(string))
 		if len(keys) == 0 {
 			log.Println("Failed to look up JWKs")
