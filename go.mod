@@ -1,4 +1,4 @@
-module bct-players
+module bct-add-round
 
 go 1.14
 
