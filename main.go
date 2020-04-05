@@ -125,12 +125,10 @@ func (handler *Handler) ParseAndVerifyJWT(t string) (*jwt.Token, error) {
 		log.Print(token)
 		keys := handler.WellKnownJWKs.LookupKeyID(token.Header["kid"].(string))
 		if len(keys) == 0 {
-			log.Println("Failed to look up JWKs")
-			return nil, errors.New("could not find matching `kid` in well known tokens")
+			return nil, errors.New("Unauthorized")
 		}
 		key, err := keys[0].Materialize()
 		if err != nil {
-			log.Printf("Failed to create public key: %s", err)
 			return nil, err
 		}
 		rsaPublicKey := key.(*rsa.PublicKey)
@@ -144,19 +142,17 @@ func (handler *Handler) ParseAndVerifyJWT(t string) (*jwt.Token, error) {
 				if claims.VerifyAudience(os.Getenv("COGNITO_APP_CLIENT_ID"), false) {
 					return token, nil
 				} else {
-					err = errors.New("token audience does not match client id")
-					log.Println("Invalid audience for id token")
+					err = errors.New("Unauthorized")
 				}
 			} else {
-				log.Println("Invalid claims for id token")
-				log.Println(err)
+				return nil, errors.New("Unauthorized")
 			}
 		}
 	} else {
 		log.Println("Invalid token:", err)
 	}
 
-	return nil, err
+	return nil, errors.New("Unauthorized")
 }
 
 func getWellKnownJWTKs() *jwk.Set {
